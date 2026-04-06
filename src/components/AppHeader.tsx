@@ -1,8 +1,9 @@
+import { SITE_URL } from '@admin/api/config'
 import { Button } from '@admin/components/ui/button'
 import { apiFetch } from '@admin/api/http'
 import { useMe } from '@admin/hooks/useMe'
 import { clearTokens, getRefreshToken } from '@admin/routes/auth'
-import { Moon, Shield, Sun } from 'lucide-react'
+import { ExternalLink, Moon, Shield, Sun } from 'lucide-react'
 import { getTheme, onThemeChange, toggleTheme } from '@admin/lib/theme'
 import { useEffect, useState } from 'react'
 
@@ -31,6 +32,17 @@ export function AppHeader({ onLoggedOut }: { onLoggedOut: () => void }) {
           <div className="font-semibold tracking-tight text-[hsl(var(--foreground))]">
             Rise
           </div>
+          {SITE_URL ? (
+            <a
+              href={SITE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-1 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-[hsl(var(--muted-foreground))] transition-colors hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--foreground))]"
+            >
+              <ExternalLink className="size-3.5 shrink-0" aria-hidden />
+              Website
+            </a>
+          ) : null}
         </div>
 
         <div className="flex items-center gap-3">
