@@ -12,6 +12,8 @@ export type Project = {
   imageUrls?: string[]
   coverImageUrl: string | null
   directionId?: string | null
+  /** Реалізований / актуальний */
+  implementationStatus?: 'implemented' | 'current' | null
   createdAt?: string
   updatedAt?: string
 }

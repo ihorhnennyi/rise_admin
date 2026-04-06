@@ -12,6 +12,7 @@ import { API_BASE_URL } from '@admin/api/config'
 import { AlertDialog } from '@admin/components/ui/alert-dialog'
 import { AdminPersistFooter } from '@admin/components/AdminPersistFooter'
 import { usePersistedJsonAutosave } from '@admin/hooks/usePersistedJsonAutosave'
+import { SelectMenu, type SelectMenuOption } from '@admin/components/ui/select-menu'
 import { toastError, toastInfo, toastSuccess } from '@admin/lib/toast'
 import { Trash2 } from 'lucide-react'
 
@@ -28,6 +29,7 @@ export function ProjectsEditPage() {
   const [excerptEn, setExcerptEn] = useState('')
   const [results, setResults] = useState<Array<{ titleUk: string; titleEn: string; excerptUk: string; excerptEn: string }>>([])
   const [directionId, setDirectionId] = useState('')
+  const [implementationStatus, setImplementationStatus] = useState<'' | 'implemented' | 'current'>('')
   const [directions, setDirections] = useState<Direction[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -55,6 +57,8 @@ export function ProjectsEditPage() {
         setExcerptEn((data.excerptEn ?? '').toString())
         setResults(Array.isArray((data as any).results) ? ((data as any).results as any) : [])
         setDirectionId((data.directionId ?? '').toString())
+        const st = (data as Project).implementationStatus
+        setImplementationStatus(st === 'implemented' || st === 'current' ? st : '')
         initialRef.current = JSON.stringify({
           titleUk: (data.titleUk ?? data.title ?? '').toString(),
           titleEn: (data.titleEn ?? '').toString(),
@@ -62,6 +66,7 @@ export function ProjectsEditPage() {
           excerptEn: (data.excerptEn ?? '').toString(),
           results: Array.isArray((data as any).results) ? ((data as any).results as any) : [],
           directionId: (data.directionId ?? '').toString(),
+          implementationStatus: st === 'implemented' || st === 'current' ? st : '',
         })
       } catch (e) {
         if (cancelled) return
@@ -95,9 +100,38 @@ export function ProjectsEditPage() {
     }
   }, [])
 
+  const directionSelectOptions = useMemo<SelectMenuOption[]>(() => {
+    const none = lang === 'uk' ? '— не обрано —' : '— not selected —'
+    return [
+      { value: '', label: none },
+      ...directions.map((d) => ({
+        value: d._id,
+        label: (d.titleUk ?? d.title ?? '').toString() || d._id,
+      })),
+    ]
+  }, [lang, directions])
+
+  const statusSelectOptions = useMemo<SelectMenuOption[]>(() => {
+    const none = lang === 'uk' ? '— не обрано —' : '— not selected —'
+    return [
+      { value: '', label: none },
+      { value: 'implemented', label: lang === 'uk' ? 'Реалізований' : 'Implemented' },
+      { value: 'current', label: lang === 'uk' ? 'Актуальний' : 'Current' },
+    ]
+  }, [lang])
+
   const patchJson = useMemo(
-    () => JSON.stringify({ titleUk, titleEn, excerptUk, excerptEn, results, directionId }),
-    [titleUk, titleEn, excerptUk, excerptEn, results, directionId],
+    () =>
+      JSON.stringify({
+        titleUk,
+        titleEn,
+        excerptUk,
+        excerptEn,
+        results,
+        directionId,
+        implementationStatus,
+      }),
+    [titleUk, titleEn, excerptUk, excerptEn, results, directionId, implementationStatus],
   )
 
   const dirty = patchJson !== initialRef.current
@@ -110,7 +144,15 @@ export function ProjectsEditPage() {
     try {
       const updated = await apiFetch<Project>(`/projects/${projectId}`, {
         method: 'PATCH',
-        json: { titleUk, titleEn, excerptUk, excerptEn, results, directionId: directionId.trim() || null },
+        json: {
+          titleUk,
+          titleEn,
+          excerptUk,
+          excerptEn,
+          results,
+          directionId: directionId.trim() || null,
+          implementationStatus: implementationStatus || '',
+        },
       })
       setProject(updated)
       setTitleUk((updated.titleUk ?? updated.title ?? '').toString())
@@ -119,6 +161,8 @@ export function ProjectsEditPage() {
       setExcerptEn((updated.excerptEn ?? '').toString())
       setResults(Array.isArray((updated as any).results) ? ((updated as any).results as any) : [])
       setDirectionId((updated.directionId ?? '').toString())
+      const ust = (updated as Project).implementationStatus
+      setImplementationStatus(ust === 'implemented' || ust === 'current' ? ust : '')
       initialRef.current = JSON.stringify({
         titleUk: (updated.titleUk ?? updated.title ?? '').toString(),
         titleEn: (updated.titleEn ?? '').toString(),
@@ -126,6 +170,7 @@ export function ProjectsEditPage() {
         excerptEn: (updated.excerptEn ?? '').toString(),
         results: Array.isArray((updated as any).results) ? ((updated as any).results as any) : [],
         directionId: (updated.directionId ?? '').toString(),
+        implementationStatus: ust === 'implemented' || ust === 'current' ? ust : '',
       })
       if (!silent) toastSuccess('Збережено', 'Зміни збережено.')
       return true
@@ -304,19 +349,25 @@ export function ProjectsEditPage() {
             </div>
 
             <div className="grid gap-2">
-              <Label>Напрямок (опційно)</Label>
-              <select
-                className="h-10 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 text-sm"
+              <Label htmlFor="project-edit-direction">{lang === 'uk' ? 'Напрямок (опційно)' : 'Direction (optional)'}</Label>
+              <SelectMenu
+                id="project-edit-direction"
                 value={directionId}
-                onChange={(e) => setDirectionId(e.target.value)}
-              >
-                <option value="">— не обрано —</option>
-                {directions.map((d) => (
-                  <option key={d._id} value={d._id}>
-                    {d.titleUk ?? d.title}
-                  </option>
-                ))}
-              </select>
+                onValueChange={setDirectionId}
+                options={directionSelectOptions}
+                placeholder={lang === 'uk' ? '— не обрано —' : '— not selected —'}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="project-edit-status">{lang === 'uk' ? 'Статус (опційно)' : 'Status (optional)'}</Label>
+              <SelectMenu
+                id="project-edit-status"
+                value={implementationStatus}
+                onValueChange={(v) => setImplementationStatus(v as '' | 'implemented' | 'current')}
+                options={statusSelectOptions}
+                placeholder={lang === 'uk' ? '— не обрано —' : '— not selected —'}
+              />
             </div>
 
             <div className="grid gap-2">

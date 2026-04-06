@@ -9,6 +9,7 @@ import { Input } from '@admin/components/ui/input'
 import { Label } from '@admin/components/ui/label'
 import { Textarea } from '@admin/components/ui/textarea'
 import { RichTextEditor } from '@admin/components/RichTextEditor'
+import { SelectMenu, type SelectMenuOption } from '@admin/components/ui/select-menu'
 import { toastError, toastSuccess } from '@admin/lib/toast'
 
 export function ProjectsCreatePage() {
@@ -22,6 +23,7 @@ export function ProjectsCreatePage() {
   const [contentEn, setContentEn] = useState('')
   const [results, setResults] = useState<Array<{ titleUk: string; titleEn: string; excerptUk: string; excerptEn: string }>>([])
   const [directionId, setDirectionId] = useState('')
+  const [implementationStatus, setImplementationStatus] = useState<'' | 'implemented' | 'current'>('')
   const [directions, setDirections] = useState<Direction[]>([])
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [galleryFiles, setGalleryFiles] = useState<File[]>([])
@@ -57,6 +59,26 @@ export function ProjectsCreatePage() {
     }
   }, [])
 
+  const directionSelectOptions = useMemo<SelectMenuOption[]>(() => {
+    const none = lang === 'uk' ? '— не обрано —' : '— not selected —'
+    return [
+      { value: '', label: none },
+      ...directions.map((d) => ({
+        value: d._id,
+        label: (d.titleUk ?? d.title ?? '').toString() || d._id,
+      })),
+    ]
+  }, [lang, directions])
+
+  const statusSelectOptions = useMemo<SelectMenuOption[]>(() => {
+    const none = lang === 'uk' ? '— не обрано —' : '— not selected —'
+    return [
+      { value: '', label: none },
+      { value: 'implemented', label: lang === 'uk' ? 'Реалізований' : 'Implemented' },
+      { value: 'current', label: lang === 'uk' ? 'Актуальний' : 'Current' },
+    ]
+  }, [lang])
+
   async function onCreate(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
@@ -73,6 +95,7 @@ export function ProjectsCreatePage() {
           contentEn,
           results,
           directionId: directionId.trim() || undefined,
+          ...(implementationStatus ? { implementationStatus } : {}),
         },
       })
 
@@ -151,19 +174,25 @@ export function ProjectsCreatePage() {
             </div>
 
             <div className="grid gap-2">
-              <Label>Напрямок (опційно)</Label>
-              <select
-                className="h-10 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 text-sm"
+              <Label htmlFor="project-create-direction">{lang === 'uk' ? 'Напрямок (опційно)' : 'Direction (optional)'}</Label>
+              <SelectMenu
+                id="project-create-direction"
                 value={directionId}
-                onChange={(e) => setDirectionId(e.target.value)}
-              >
-                <option value="">— не обрано —</option>
-                {directions.map((d) => (
-                  <option key={d._id} value={d._id}>
-                    {d.titleUk ?? d.title}
-                  </option>
-                ))}
-              </select>
+                onValueChange={setDirectionId}
+                options={directionSelectOptions}
+                placeholder={lang === 'uk' ? '— не обрано —' : '— not selected —'}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="project-create-status">{lang === 'uk' ? 'Статус (опційно)' : 'Status (optional)'}</Label>
+              <SelectMenu
+                id="project-create-status"
+                value={implementationStatus}
+                onValueChange={(v) => setImplementationStatus(v as '' | 'implemented' | 'current')}
+                options={statusSelectOptions}
+                placeholder={lang === 'uk' ? '— не обрано —' : '— not selected —'}
+              />
             </div>
 
             <div className="grid gap-2">
