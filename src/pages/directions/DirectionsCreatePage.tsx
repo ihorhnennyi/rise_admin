@@ -8,6 +8,7 @@ import { Input } from '@admin/components/ui/input'
 import { Label } from '@admin/components/ui/label'
 import { Textarea } from '@admin/components/ui/textarea'
 import { toastError, toastSuccess } from '@admin/lib/toast'
+import { ImagePlus } from 'lucide-react'
 
 export function DirectionsCreatePage() {
   const navigate = useNavigate()
@@ -112,16 +113,34 @@ export function DirectionsCreatePage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label>Зображення картки</Label>
-              <input
-                ref={coverInputRef}
-                type="file"
-                accept="image/*"
-                className="text-sm"
-                onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
-              />
+              <Label htmlFor="direction-new-cover-file">Зображення картки</Label>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  id="direction-new-cover-file"
+                  ref={coverInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => coverInputRef.current?.click()}
+                  className="gap-2"
+                >
+                  <ImagePlus className="size-4 shrink-0" aria-hidden />
+                  {coverFile ? 'Інше зображення' : 'Обрати зображення'}
+                </Button>
+                {coverFile ? (
+                  <span className="text-xs text-[hsl(var(--muted-foreground))] truncate max-w-[min(100%,14rem)]" title={coverFile.name}>
+                    {coverFile.name}
+                  </span>
+                ) : null}
+              </div>
               {coverPreviewUrl ? (
-                <img src={coverPreviewUrl} alt="" className="max-h-48 rounded-lg border object-cover" />
+                <img src={coverPreviewUrl} alt="" className="max-h-48 rounded-xl border border-[hsl(var(--border))] object-cover" />
               ) : null}
             </div>
             {error ? <div className="text-sm text-red-400">{error}</div> : null}

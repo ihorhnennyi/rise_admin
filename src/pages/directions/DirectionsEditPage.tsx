@@ -10,6 +10,7 @@ import { Textarea } from '@admin/components/ui/textarea'
 import { API_BASE_URL } from '@admin/api/config'
 import { AlertDialog } from '@admin/components/ui/alert-dialog'
 import { toastError, toastInfo, toastSuccess } from '@admin/lib/toast'
+import { ImagePlus, Languages, List, Loader2, Save, Trash2 } from 'lucide-react'
 
 export function DirectionsEditPage() {
   const { id } = useParams<{ id: string }>()
@@ -125,18 +126,27 @@ export function DirectionsEditPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant={lang === 'uk' ? 'default' : 'secondary'} size="sm" onClick={() => setLang('uk')}>
+            <Languages className="size-4 shrink-0" aria-hidden />
             UA
           </Button>
           <Button type="button" variant={lang === 'en' ? 'default' : 'secondary'} size="sm" onClick={() => setLang('en')}>
+            <Languages className="size-4 shrink-0" aria-hidden />
             EN
           </Button>
           <Button type="button" disabled={saving} onClick={() => void save()}>
+            {saving ? (
+              <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+            ) : (
+              <Save className="size-4 shrink-0" aria-hidden />
+            )}
             {saving ? 'Зберігаю…' : 'Зберегти'}
           </Button>
           <Button variant="secondary" onClick={() => setDeleteOpen(true)}>
+            <Trash2 className="size-4 shrink-0" aria-hidden />
             Видалити
           </Button>
           <Button variant="secondary" onClick={() => navigate('/directions')}>
+            <List className="size-4 shrink-0" aria-hidden />
             До списку
           </Button>
         </div>
@@ -188,22 +198,41 @@ export function DirectionsEditPage() {
             />
           </div>
           <div className="grid gap-2">
-            <Label>Зображення</Label>
+            <Label htmlFor="direction-cover-file">Зображення</Label>
             {coverUrl ? (
-              <img
-                src={`${API_BASE_URL.replace(/\/api$/, '')}${coverUrl}`}
-                alt=""
-                className="max-h-56 rounded-lg border object-cover"
+              <div className="overflow-hidden rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card)/0.4)]">
+                <img
+                  src={`${API_BASE_URL.replace(/\/api$/, '')}${coverUrl}`}
+                  alt=""
+                  className="max-h-56 w-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+            ) : (
+              <p className="text-sm text-[hsl(var(--muted-foreground))]">Зображення ще не завантажено.</p>
+            )}
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                id="direction-cover-file"
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                disabled={uploadingCover}
+                className="hidden"
+                onChange={(e) => void onUploadCover(e.target.files?.[0] ?? null)}
               />
-            ) : null}
-            <input
-              ref={coverInputRef}
-              type="file"
-              accept="image/*"
-              disabled={uploadingCover}
-              className="text-sm"
-              onChange={(e) => void onUploadCover(e.target.files?.[0] ?? null)}
-            />
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={uploadingCover}
+                onClick={() => coverInputRef.current?.click()}
+                className="gap-2"
+              >
+                <ImagePlus className="size-4 shrink-0" aria-hidden />
+                {uploadingCover ? 'Завантаження…' : coverUrl ? 'Замінити зображення' : 'Обрати зображення'}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
