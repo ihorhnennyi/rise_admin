@@ -46,6 +46,11 @@ export function ProjectsListPage() {
     return d ? (d.titleUk ?? d.title) : id
   }
 
+  function statusLabel(project: Project): 'implemented' | 'current' | null {
+    const s = project.implementationStatus
+    return s === 'implemented' || s === 'current' ? s : null
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-4">
@@ -77,6 +82,7 @@ export function ProjectsListPage() {
             const origin = API_BASE_URL.replace(/\/api$/, '')
             const coverSrc = a.coverImageUrl ? `${origin}${a.coverImageUrl}` : null
             const dirLbl = directionLabel(a)
+            const status = statusLabel(a)
             const excerptRaw = (a.excerptUk ?? a.excerpt ?? '') as string
             const excerpt =
               excerptRaw.length > 160 ? `${excerptRaw.slice(0, 160).trim()}…` : excerptRaw
@@ -110,6 +116,19 @@ export function ProjectsListPage() {
                     ) : (
                       <span className="inline-flex rounded-full border border-dashed border-[hsl(var(--border))] px-2.5 py-0.5 text-[11px] text-[hsl(var(--muted-foreground))]">
                         Без напрямку
+                      </span>
+                    )}
+                    {status === 'implemented' ? (
+                      <span className="inline-flex rounded-full border border-[hsl(var(--border))] bg-[hsl(var(--primary)/0.15)] px-2.5 py-0.5 text-[11px] font-medium text-[hsl(var(--foreground))]">
+                        Реалізований
+                      </span>
+                    ) : status === 'current' ? (
+                      <span className="inline-flex rounded-full border border-[hsl(var(--border))] bg-[hsl(var(--primary)/0.15)] px-2.5 py-0.5 text-[11px] font-medium text-[hsl(var(--foreground))]">
+                        Актуальний
+                      </span>
+                    ) : (
+                      <span className="inline-flex rounded-full border border-dashed border-[hsl(var(--border))] px-2.5 py-0.5 text-[11px] text-[hsl(var(--muted-foreground))]">
+                        Статус не обрано
                       </span>
                     )}
                   </div>
