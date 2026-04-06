@@ -10,7 +10,7 @@ import { Textarea } from '@admin/components/ui/textarea'
 import { API_BASE_URL } from '@admin/api/config'
 import { AlertDialog } from '@admin/components/ui/alert-dialog'
 import { toastError, toastInfo, toastSuccess } from '@admin/lib/toast'
-import { ImagePlus, Languages, List, Loader2, Save, Trash2 } from 'lucide-react'
+import { ImagePlus, List, Loader2, Save, Trash2 } from 'lucide-react'
 
 export function DirectionsEditPage() {
   const { id } = useParams<{ id: string }>()
@@ -114,9 +114,9 @@ export function DirectionsEditPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 pb-28">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+    <div className="mx-auto w-full max-w-5xl space-y-6 pb-28 px-1 sm:px-0">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight text-[hsl(var(--foreground))]">
             Редагування напрямку
           </h1>
@@ -124,30 +124,60 @@ export function DirectionsEditPage() {
             ID: <span className="font-mono">{directionId}</span>
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant={lang === 'uk' ? 'default' : 'secondary'} size="sm" onClick={() => setLang('uk')}>
-            <Languages className="size-4 shrink-0" aria-hidden />
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <Button
+            type="button"
+            variant={lang === 'uk' ? 'default' : 'secondary'}
+            size="sm"
+            className="min-w-11 px-2"
+            onClick={() => setLang('uk')}
+            aria-label="Українська"
+            title="Українська"
+          >
             UA
           </Button>
-          <Button type="button" variant={lang === 'en' ? 'default' : 'secondary'} size="sm" onClick={() => setLang('en')}>
-            <Languages className="size-4 shrink-0" aria-hidden />
+          <Button
+            type="button"
+            variant={lang === 'en' ? 'default' : 'secondary'}
+            size="sm"
+            className="min-w-11 px-2"
+            onClick={() => setLang('en')}
+            aria-label="English"
+            title="English"
+          >
             EN
           </Button>
-          <Button type="button" disabled={saving} onClick={() => void save()}>
+          <Button
+            type="button"
+            disabled={saving}
+            className="size-9 shrink-0 px-0"
+            onClick={() => void save()}
+            aria-label={saving ? 'Зберігання…' : 'Зберегти'}
+            title={saving ? 'Зберігання…' : 'Зберегти'}
+          >
             {saving ? (
-              <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+              <Loader2 className="size-4 animate-spin" aria-hidden />
             ) : (
-              <Save className="size-4 shrink-0" aria-hidden />
+              <Save className="size-4" aria-hidden />
             )}
-            {saving ? 'Зберігаю…' : 'Зберегти'}
           </Button>
-          <Button variant="secondary" onClick={() => setDeleteOpen(true)}>
-            <Trash2 className="size-4 shrink-0" aria-hidden />
-            Видалити
+          <Button
+            variant="secondary"
+            className="size-9 shrink-0 px-0"
+            onClick={() => setDeleteOpen(true)}
+            aria-label="Видалити"
+            title="Видалити"
+          >
+            <Trash2 className="size-4" aria-hidden />
           </Button>
-          <Button variant="secondary" onClick={() => navigate('/directions')}>
-            <List className="size-4 shrink-0" aria-hidden />
-            До списку
+          <Button
+            variant="secondary"
+            className="size-9 shrink-0 px-0"
+            onClick={() => navigate('/directions')}
+            aria-label="До списку напрямків"
+            title="До списку"
+          >
+            <List className="size-4" aria-hidden />
           </Button>
         </div>
       </div>
@@ -224,13 +254,29 @@ export function DirectionsEditPage() {
               <Button
                 type="button"
                 variant="secondary"
-                size="sm"
                 disabled={uploadingCover}
                 onClick={() => coverInputRef.current?.click()}
-                className="gap-2"
+                className="size-9 shrink-0 px-0"
+                aria-label={
+                  uploadingCover
+                    ? 'Завантаження зображення…'
+                    : coverUrl
+                      ? 'Замінити зображення'
+                      : 'Обрати зображення'
+                }
+                title={
+                  uploadingCover
+                    ? 'Завантаження…'
+                    : coverUrl
+                      ? 'Замінити зображення'
+                      : 'Обрати зображення'
+                }
               >
-                <ImagePlus className="size-4 shrink-0" aria-hidden />
-                {uploadingCover ? 'Завантаження…' : coverUrl ? 'Замінити зображення' : 'Обрати зображення'}
+                {uploadingCover ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <ImagePlus className="size-4" aria-hidden />
+                )}
               </Button>
             </div>
           </div>
