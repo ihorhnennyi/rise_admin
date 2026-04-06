@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiFetch, ApiError } from '@admin/api/http'
-import type { Direction } from '@admin/types/directions'
+import type { Direction, DirectionImpactCircle } from '@admin/types/directions'
 import { Button } from '@admin/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@admin/components/ui/card'
 import { Input } from '@admin/components/ui/input'
@@ -11,6 +11,26 @@ import { API_BASE_URL } from '@admin/api/config'
 import { AlertDialog } from '@admin/components/ui/alert-dialog'
 import { toastError, toastInfo, toastSuccess } from '@admin/lib/toast'
 import { ImagePlus, List, Loader2, Save, Trash2 } from 'lucide-react'
+
+const emptyCircle = (): DirectionImpactCircle => ({
+  titleUk: '',
+  titleEn: '',
+  excerptUk: '',
+  excerptEn: '',
+})
+
+function normalizeCircles(raw: unknown): DirectionImpactCircle[] {
+  if (!Array.isArray(raw)) return []
+  return raw.map((x) => {
+    const o = x as Record<string, unknown>
+    return {
+      titleUk: String(o.titleUk ?? ''),
+      titleEn: String(o.titleEn ?? ''),
+      excerptUk: String(o.excerptUk ?? ''),
+      excerptEn: String(o.excerptEn ?? ''),
+    }
+  })
+}
 
 export function DirectionsEditPage() {
   const { id } = useParams<{ id: string }>()
@@ -28,6 +48,7 @@ export function DirectionsEditPage() {
   const [uploadingCover, setUploadingCover] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [impactCircles, setImpactCircles] = useState<DirectionImpactCircle[]>([])
   const coverInputRef = useRef<HTMLInputElement | null>(null)
 
   const coverUrl = useMemo(() => direction?.coverImageUrl ?? null, [direction?.coverImageUrl])
@@ -43,6 +64,7 @@ export function DirectionsEditPage() {
         setTitleEn((d.titleEn ?? '').toString())
         setExcerptUk((d.excerptUk ?? d.excerpt ?? '').toString())
         setExcerptEn((d.excerptEn ?? '').toString())
+        setImpactCircles(normalizeCircles(d.impactCircles))
       } catch (e) {
         if (cancelled) return
         setDirection(null)
@@ -68,9 +90,11 @@ export function DirectionsEditPage() {
           titleEn,
           excerptUk,
           excerptEn,
+          impactCircles,
         },
       })
       setDirection(updated)
+      setImpactCircles(normalizeCircles(updated.impactCircles))
       toastSuccess('Збережено', 'Зміни збережено.')
     } catch {
       toastError('Помилка', 'Не вдалося зберегти.')
@@ -280,6 +304,71 @@ export function DirectionsEditPage() {
               </Button>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-[hsl(var(--card)/0.65)] backdrop-blur">
+        <CardHeader>
+          <CardTitle>Кола «Результати»</CardTitle>
+          <CardDescription>
+            Заголовок (наприклад число) і короткий підпис — як на сторінці проєкту в кругах. Відображається для проєкту,
+            прив’язаного до цього напрямку.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <div className="space-y-3">
+            {impactCircles.length === 0 ? (
+              <div className="text-sm text-[hsl(var(--muted-foreground))]">Блоків ще немає.</div>
+            ) : null}
+            {impactCircles.map((r, idx) => (
+              <div
+                key={idx}
+                className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card)/0.4)] p-4"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-xs font-medium text-[hsl(var(--muted-foreground))]">Коло {idx + 1}</div>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setImpactCircles((prev) => prev.filter((_, i) => i !== idx))}>
+                    Прибрати
+                  </Button>
+                </div>
+                <div className="mt-3 grid gap-2">
+                  <Label>Заголовок (у колі)</Label>
+                  <Input
+                    value={lang === 'uk' ? r.titleUk : r.titleEn}
+                    onChange={(e) =>
+                      setImpactCircles((prev) =>
+                        prev.map((x, i) =>
+                          i === idx
+                            ? { ...x, ...(lang === 'uk' ? { titleUk: e.target.value } : { titleEn: e.target.value }) }
+                            : x,
+                        ),
+                      )
+                    }
+                  />
+                  <Label>Підпис під заголовком</Label>
+                  <Textarea
+                    value={lang === 'uk' ? r.excerptUk : r.excerptEn}
+                    onChange={(e) =>
+                      setImpactCircles((prev) =>
+                        prev.map((x, i) =>
+                          i === idx
+                            ? {
+                                ...x,
+                                ...(lang === 'uk' ? { excerptUk: e.target.value } : { excerptEn: e.target.value }),
+                              }
+                            : x,
+                        ),
+                      )
+                    }
+                    rows={2}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <Button type="button" variant="secondary" size="sm" onClick={() => setImpactCircles((prev) => [...prev, emptyCircle()])}>
+            Додати коло
+          </Button>
         </CardContent>
       </Card>
     </div>

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, ApiError } from '@admin/api/http'
-import type { Direction } from '@admin/types/directions'
+import type { Direction, DirectionImpactCircle } from '@admin/types/directions'
 import { Button } from '@admin/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@admin/components/ui/card'
 import { Input } from '@admin/components/ui/input'
@@ -17,6 +17,7 @@ export function DirectionsCreatePage() {
   const [titleEn, setTitleEn] = useState('')
   const [excerptUk, setExcerptUk] = useState('')
   const [excerptEn, setExcerptEn] = useState('')
+  const [impactCircles, setImpactCircles] = useState<DirectionImpactCircle[]>([])
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -45,6 +46,7 @@ export function DirectionsCreatePage() {
           titleEn,
           excerptUk,
           excerptEn,
+          impactCircles,
         },
       })
 
@@ -143,6 +145,82 @@ export function DirectionsCreatePage() {
                 <img src={coverPreviewUrl} alt="" className="max-h-48 rounded-xl border border-[hsl(var(--border))] object-cover" />
               ) : null}
             </div>
+
+            <div className="grid gap-2">
+              <Label>Кола «Результати»</Label>
+              <p className="text-xs text-[hsl(var(--muted-foreground))]">
+                Число або короткий заголовок у колі та підпис (UA/EN перемикач зверху). Показуються на сторінці проєкту цього напрямку.
+              </p>
+              <div className="space-y-3">
+                {impactCircles.length === 0 ? (
+                  <div className="text-sm text-[hsl(var(--muted-foreground))]">Блоків ще немає.</div>
+                ) : null}
+                {impactCircles.map((r, idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card)/0.4)] p-4"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-xs font-medium text-[hsl(var(--muted-foreground))]">Коло {idx + 1}</div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setImpactCircles((prev) => prev.filter((_, i) => i !== idx))}
+                      >
+                        Прибрати
+                      </Button>
+                    </div>
+                    <div className="mt-3 grid gap-2">
+                      <Label>Заголовок (у колі)</Label>
+                      <Input
+                        value={lang === 'uk' ? r.titleUk : r.titleEn}
+                        onChange={(e) =>
+                          setImpactCircles((prev) =>
+                            prev.map((x, i) =>
+                              i === idx
+                                ? { ...x, ...(lang === 'uk' ? { titleUk: e.target.value } : { titleEn: e.target.value }) }
+                                : x,
+                            ),
+                          )
+                        }
+                      />
+                      <Label>Підпис</Label>
+                      <Textarea
+                        value={lang === 'uk' ? r.excerptUk : r.excerptEn}
+                        onChange={(e) =>
+                          setImpactCircles((prev) =>
+                            prev.map((x, i) =>
+                              i === idx
+                                ? {
+                                    ...x,
+                                    ...(lang === 'uk' ? { excerptUk: e.target.value } : { excerptEn: e.target.value }),
+                                  }
+                                : x,
+                            ),
+                          )
+                        }
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() =>
+                  setImpactCircles((prev) => [
+                    ...prev,
+                    { titleUk: '', titleEn: '', excerptUk: '', excerptEn: '' },
+                  ])
+                }
+              >
+                Додати коло
+              </Button>
+            </div>
+
             {error ? <div className="text-sm text-red-400">{error}</div> : null}
             <div className="flex gap-2">
               <Button type="submit" disabled={saving}>
