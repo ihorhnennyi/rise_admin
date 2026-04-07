@@ -16,7 +16,7 @@ import {
   writeCollapsedBooleanArray,
 } from '@admin/lib/section-storage'
 import { cn } from '@admin/lib/utils'
-import { ChevronDown, Trash2 } from 'lucide-react'
+import { ChevronDown, ImageIcon, Trash2 } from 'lucide-react'
 
 function extFromFileName(name: string): string {
   const m = /\.([a-z0-9]+)$/i.exec(name || '')
@@ -1529,77 +1529,90 @@ export function ContentPageEditor(props: {
                         </Button>
                       </div>
 
-                      <div className={cn('mt-3 grid gap-2', collapsed ? 'hidden' : '')}>
-                        <div className="grid gap-2">
-                          <Label>Імʼя</Label>
-                          <Input
-                            value={lang === 'uk' ? (m.nameUk ?? '') : (m.nameEn ?? '')}
-                            onChange={(e) =>
-                              setTeamMembers((prev) =>
-                                prev.map((x, i) =>
-                                  i === idx
-                                    ? {
-                                        ...x,
-                                        ...(lang === 'uk' ? { nameUk: e.target.value } : { nameEn: e.target.value }),
-                                      }
-                                    : x,
-                                ),
-                              )
-                            }
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label>Посада / роль</Label>
-                          <Textarea
-                            value={lang === 'uk' ? (m.roleUk ?? '') : (m.roleEn ?? '')}
-                            onChange={(e) =>
-                              setTeamMembers((prev) =>
-                                prev.map((x, i) =>
-                                  i === idx
-                                    ? {
-                                        ...x,
-                                        ...(lang === 'uk' ? { roleUk: e.target.value } : { roleEn: e.target.value }),
-                                      }
-                                    : x,
-                                ),
-                              )
-                            }
-                            rows={2}
-                            className="min-h-[60px]"
-                          />
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <input
-                            ref={(el) => {
-                              teamInputRefs.current[idx] = el
-                            }}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => void onUploadTeamMemberImage(idx, e.target.files?.[0] ?? null)}
-                          />
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            disabled={teamUploadingIndex === idx}
-                            onClick={() => teamInputRefs.current[idx]?.click()}
-                          >
-                            Фото
-                          </Button>
-                          <div className="text-xs text-[hsl(var(--muted-foreground))]">
-                            {teamUploadingIndex === idx
-                              ? 'Завантаження…'
-                              : imageUrl
-                                ? 'Завантажено'
-                                : 'Файл не вибрано'}
+                      <div className={cn('mt-3', collapsed ? 'hidden' : '')}>
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                          <div className="flex w-full shrink-0 flex-col items-center gap-2 sm:w-[112px]">
+                            {src ? (
+                              <div className="aspect-[3/4] w-full max-w-[112px] overflow-hidden rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--muted)/0.2)]">
+                                <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
+                              </div>
+                            ) : (
+                              <div
+                                className="flex aspect-[3/4] w-full max-w-[112px] flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-[hsl(var(--border))] bg-[hsl(var(--muted)/0.25)] px-1 py-2 text-[hsl(var(--muted-foreground))]"
+                                aria-hidden
+                              >
+                                <ImageIcon className="h-7 w-7 opacity-45" />
+                                <span className="text-center text-[10px] leading-tight">Немає фото</span>
+                              </div>
+                            )}
+                            <input
+                              ref={(el) => {
+                                teamInputRefs.current[idx] = el
+                              }}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => void onUploadTeamMemberImage(idx, e.target.files?.[0] ?? null)}
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              className="w-full max-w-[112px]"
+                              disabled={teamUploadingIndex === idx}
+                              onClick={() => teamInputRefs.current[idx]?.click()}
+                            >
+                              Фото
+                            </Button>
+                            <div className="text-center text-[10px] text-[hsl(var(--muted-foreground))]">
+                              {teamUploadingIndex === idx
+                                ? 'Завантаження…'
+                                : imageUrl
+                                  ? 'Завантажено'
+                                  : 'Файл не вибрано'}
+                            </div>
+                          </div>
+                          <div className="min-w-0 flex-1 space-y-3">
+                            <div className="grid gap-2">
+                              <Label>Імʼя</Label>
+                              <Input
+                                value={lang === 'uk' ? (m.nameUk ?? '') : (m.nameEn ?? '')}
+                                onChange={(e) =>
+                                  setTeamMembers((prev) =>
+                                    prev.map((x, i) =>
+                                      i === idx
+                                        ? {
+                                            ...x,
+                                            ...(lang === 'uk' ? { nameUk: e.target.value } : { nameEn: e.target.value }),
+                                          }
+                                        : x,
+                                    ),
+                                  )
+                                }
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label>Посада / роль</Label>
+                              <Textarea
+                                value={lang === 'uk' ? (m.roleUk ?? '') : (m.roleEn ?? '')}
+                                onChange={(e) =>
+                                  setTeamMembers((prev) =>
+                                    prev.map((x, i) =>
+                                      i === idx
+                                        ? {
+                                            ...x,
+                                            ...(lang === 'uk' ? { roleUk: e.target.value } : { roleEn: e.target.value }),
+                                          }
+                                        : x,
+                                    ),
+                                  )
+                                }
+                                rows={3}
+                                className="min-h-[72px]"
+                              />
+                            </div>
                           </div>
                         </div>
-                        {src ? (
-                          <div className="overflow-hidden rounded-lg border border-[hsl(var(--border))]">
-                            <img src={src} alt="" className="aspect-[3/4] max-h-48 w-full object-cover" loading="lazy" />
-                          </div>
-                        ) : null}
                       </div>
                     </div>
                   )
