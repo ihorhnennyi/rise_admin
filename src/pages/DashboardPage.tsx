@@ -287,7 +287,7 @@ export function DashboardPage() {
           <CardHeader>
             <CardTitle>Логотип на сайті</CardTitle>
             <CardDescription>
-              PNG / JPG / SVG до 5&nbsp;МБ. Показується в шапці замість стандартного{' '}
+              PNG / JPG / SVG до 25&nbsp;МБ. Показується в шапці замість стандартного{' '}
               <code className="text-xs">/logo.svg</code>.
             </CardDescription>
           </CardHeader>
@@ -398,7 +398,7 @@ export function DashboardPage() {
                 <div className="grid gap-2">
                   <Label>Фото першого екрану (фон)</Label>
                   <p className="text-xs text-[hsl(var(--muted-foreground))]">
-                    JPG / PNG / WebP до 8&nbsp;МБ. Якщо не завантажено — на сайті залишається стандартне{' '}
+                    JPG / PNG / WebP до 25&nbsp;МБ. Якщо не завантажено — на сайті залишається стандартне{' '}
                     <code className="text-[11px]">/header.jpg</code>.
                   </p>
                   <div className="overflow-hidden rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card)/0.5)]">

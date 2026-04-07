@@ -423,7 +423,7 @@ export function FooterPage() {
                   {uploadingLogo ? t('Завантаження…', 'Uploading…') : t('Вибрати файл', 'Choose file')}
                 </Button>
                 <div className="text-xs text-[hsl(var(--muted-foreground))]">
-                  {t('PNG/JPG/SVG до 5 МБ', 'PNG/JPG/SVG up to 5 MB')}
+                  {t('PNG/JPG/SVG до 25 МБ', 'PNG/JPG/SVG up to 25 MB')}
                 </div>
               </div>
 
