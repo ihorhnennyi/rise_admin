@@ -136,7 +136,7 @@ export function ContentPageEditor(props: {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
-  const [teamUploadingIndex, setTeamUploadingIndex] = useState<number | null>(null)
+  const [teamImageBusy, setTeamImageBusy] = useState<{ index: number; mode: 'upload' | 'delete' } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [lang, setLang] = useState<'uk' | 'en'>('uk')
   const [titleUk, setTitleUk] = useState(defaultTitle)
@@ -885,9 +885,43 @@ export function ContentPageEditor(props: {
     }
   }
 
+  async function onDeleteTeamMemberImage(memberIndex: number) {
+    setTeamImageBusy({ index: memberIndex, mode: 'delete' })
+    try {
+      if (dirty) {
+        await save({ silent: true })
+      }
+      const updated = await apiFetch<ContentPage>(
+        `/content/${pageKey}/team/image?memberIndex=${encodeURIComponent(String(memberIndex))}`,
+        { method: 'DELETE' },
+      )
+      let members = Array.isArray((updated as any).teamMembers)
+        ? (([...(updated as any).teamMembers] as unknown[]) as NonNullable<ContentPage['teamMembers']>)
+        : stripTeamUiKeys(teamMembers)
+      while (members.length <= memberIndex) {
+        members.push({ nameUk: '', nameEn: '', roleUk: '', roleEn: '', imageUrl: null })
+      }
+      members = members.map((x, i) => (i === memberIndex ? { ...x, imageUrl: null } : x))
+      setTeamMembers((prev) => withTeamUiKeys(members, prev))
+      try {
+        const cur = JSON.parse(initialRef.current) as Record<string, unknown>
+        cur.teamMembers = members
+        initialRef.current = JSON.stringify(cur)
+      } catch {
+        /* ignore */
+      }
+      toastSuccess('Видалено', 'Фото знято з картки та з сервера.')
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : 'Не вдалося видалити фото.'
+      toastError('Помилка', msg)
+    } finally {
+      setTeamImageBusy(null)
+    }
+  }
+
   async function onUploadTeamMemberImage(memberIndex: number, file: File | null) {
     if (!file) return
-    setTeamUploadingIndex(memberIndex)
+    setTeamImageBusy({ index: memberIndex, mode: 'upload' })
     try {
       if (dirty) {
         await save({ silent: true })
@@ -930,7 +964,7 @@ export function ContentPageEditor(props: {
             : 'Не вдалося завантажити фото.'
       toastError('Помилка', msg)
     } finally {
-      setTeamUploadingIndex(null)
+      setTeamImageBusy(null)
       const ref = teamInputRefs.current[memberIndex]
       if (ref) ref.value = ''
     }
@@ -1533,8 +1567,27 @@ export function ContentPageEditor(props: {
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                           <div className="flex w-full shrink-0 flex-col items-center gap-2 sm:w-[112px]">
                             {src ? (
-                              <div className="aspect-[3/4] w-full max-w-[112px] overflow-hidden rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--muted)/0.2)]">
-                                <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
+                              <div className="group relative aspect-[3/4] w-full max-w-[112px] overflow-hidden rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--muted)/0.2)]">
+                                <img
+                                  src={src}
+                                  alt=""
+                                  className="h-full w-full object-cover transition group-hover:brightness-[0.92]"
+                                  loading="lazy"
+                                />
+                                <button
+                                  type="button"
+                                  className="absolute right-1 top-1 z-10 rounded-full bg-[hsl(var(--background))]/95 p-1.5 text-[hsl(var(--destructive))] shadow-md ring-1 ring-[hsl(var(--border))] transition hover:bg-[hsl(var(--accent))] disabled:opacity-50 group-hover:scale-105"
+                                  aria-label="Видалити фото"
+                                  title="Видалити фото"
+                                  disabled={teamImageBusy?.index === idx}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    void onDeleteTeamMemberImage(idx)
+                                  }}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
                               </div>
                             ) : (
                               <div
@@ -1559,14 +1612,16 @@ export function ContentPageEditor(props: {
                               variant="secondary"
                               size="sm"
                               className="w-full max-w-[112px]"
-                              disabled={teamUploadingIndex === idx}
+                              disabled={teamImageBusy?.index === idx}
                               onClick={() => teamInputRefs.current[idx]?.click()}
                             >
                               Фото
                             </Button>
                             <div className="text-center text-[10px] text-[hsl(var(--muted-foreground))]">
-                              {teamUploadingIndex === idx
-                                ? 'Завантаження…'
+                              {teamImageBusy?.index === idx
+                                ? teamImageBusy.mode === 'delete'
+                                  ? 'Видалення…'
+                                  : 'Завантаження…'
                                 : imageUrl
                                   ? 'Завантажено'
                                   : 'Файл не вибрано'}
