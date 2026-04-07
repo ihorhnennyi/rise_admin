@@ -18,6 +18,11 @@ import {
 import { cn } from '@admin/lib/utils'
 import { ChevronDown, Trash2 } from 'lucide-react'
 
+function extFromFileName(name: string): string {
+  const m = /\.([a-z0-9]+)$/i.exec(name || '')
+  return m ? `.${m[1].toLowerCase()}` : '.jpg'
+}
+
 type ContentPage = {
   _id?: string
   key: string
@@ -131,6 +136,7 @@ export function ContentPageEditor(props: {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
+  const [teamUploadingIndex, setTeamUploadingIndex] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [lang, setLang] = useState<'uk' | 'en'>('uk')
   const [titleUk, setTitleUk] = useState(defaultTitle)
@@ -861,13 +867,14 @@ export function ContentPageEditor(props: {
         await save({ silent: true })
       }
       const form = new FormData()
-      // Спочатку текстові поля — інакше multer ще не заповнив req.body під час filename()
-      form.append('blockIndex', String(blockIndex))
       form.append('image', file)
-      const updated = await apiFetch<ContentPage>(`/content/${pageKey}/blocks/image`, {
-        method: 'POST',
-        body: form,
-      })
+      const updated = await apiFetch<ContentPage>(
+        `/content/${pageKey}/blocks/image?blockIndex=${encodeURIComponent(String(blockIndex))}`,
+        {
+          method: 'POST',
+          body: form,
+        },
+      )
       setBlocks((prev) => withUiKeys(Array.isArray(updated.blocks) ? (updated.blocks as any) : stripUiKeys(prev), prev))
       toastSuccess('Завантажено', 'Картинка блоку оновлена.')
     } catch {
@@ -880,29 +887,50 @@ export function ContentPageEditor(props: {
 
   async function onUploadTeamMemberImage(memberIndex: number, file: File | null) {
     if (!file) return
+    setTeamUploadingIndex(memberIndex)
     try {
       if (dirty) {
         await save({ silent: true })
       }
       const form = new FormData()
-      form.append('memberIndex', String(memberIndex))
       form.append('image', file)
-      const updated = await apiFetch<ContentPage>(`/content/${pageKey}/team/image`, {
-        method: 'POST',
-        body: form,
-      })
-      setTeamMembers((prev) =>
-        withTeamUiKeys(
-          Array.isArray((updated as any).teamMembers)
-            ? ((updated as any).teamMembers as any)
-            : stripTeamUiKeys(prev),
-          prev,
-        ),
+      const updated = await apiFetch<ContentPage>(
+        `/content/${pageKey}/team/image?memberIndex=${encodeURIComponent(String(memberIndex))}`,
+        {
+          method: 'POST',
+          body: form,
+        },
       )
+      let members = Array.isArray((updated as any).teamMembers)
+        ? (([...(updated as any).teamMembers] as unknown[]) as NonNullable<ContentPage['teamMembers']>)
+        : stripTeamUiKeys(teamMembers)
+      while (members.length <= memberIndex) {
+        members.push({ nameUk: '', nameEn: '', roleUk: '', roleEn: '', imageUrl: null })
+      }
+      if (!members[memberIndex]?.imageUrl) {
+        const ext = extFromFileName(file.name)
+        const imageUrl = `/uploads/content/${pageKey}/${pageKey}_team_image${memberIndex + 1}${ext}`
+        members = members.map((x, i) => (i === memberIndex ? { ...x, imageUrl } : x))
+      }
+      setTeamMembers((prev) => withTeamUiKeys(members, prev))
+      try {
+        const cur = JSON.parse(initialRef.current) as Record<string, unknown>
+        cur.teamMembers = members
+        initialRef.current = JSON.stringify(cur)
+      } catch {
+        /* ignore */
+      }
       toastSuccess('Завантажено', 'Фото оновлено.')
-    } catch {
-      toastError('Помилка', 'Не вдалося завантажити фото.')
+    } catch (e) {
+      const msg =
+        e instanceof ApiError && e.status === 413
+          ? 'Файл завеликий (ліміт nginx). Збільште client_max_body_size для API.'
+          : e instanceof ApiError
+            ? e.message
+            : 'Не вдалося завантажити фото.'
+      toastError('Помилка', msg)
     } finally {
+      setTeamUploadingIndex(null)
       const ref = teamInputRefs.current[memberIndex]
       if (ref) ref.value = ''
     }
@@ -915,12 +943,14 @@ export function ContentPageEditor(props: {
         await save({ silent: true })
       }
       const form = new FormData()
-      form.append('photoIndex', String(photoIndex))
       form.append('image', file)
-      const updated = await apiFetch<ContentPage>(`/content/${pageKey}/volunteers/image`, {
-        method: 'POST',
-        body: form,
-      })
+      const updated = await apiFetch<ContentPage>(
+        `/content/${pageKey}/volunteers/image?photoIndex=${encodeURIComponent(String(photoIndex))}`,
+        {
+          method: 'POST',
+          body: form,
+        },
+      )
       setVolunteerPhotos((prev) =>
         withVolunteerUiKeys(
           Array.isArray((updated as any).volunteerPhotos)
@@ -1552,12 +1582,17 @@ export function ContentPageEditor(props: {
                             type="button"
                             variant="secondary"
                             size="sm"
+                            disabled={teamUploadingIndex === idx}
                             onClick={() => teamInputRefs.current[idx]?.click()}
                           >
                             Фото
                           </Button>
                           <div className="text-xs text-[hsl(var(--muted-foreground))]">
-                            {imageUrl ? 'Завантажено' : 'Файл не вибран'}
+                            {teamUploadingIndex === idx
+                              ? 'Завантаження…'
+                              : imageUrl
+                                ? 'Завантажено'
+                                : 'Файл не вибрано'}
                           </div>
                         </div>
                         {src ? (
