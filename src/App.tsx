@@ -26,6 +26,9 @@ import { UsersPage } from '@admin/pages/users/UsersPage'
 import { MarketingScriptsPage } from '@admin/pages/MarketingScriptsPage'
 import { AnalyticsOverviewPage } from '@admin/pages/AnalyticsOverviewPage'
 import { RequireSuperadmin } from '@admin/routes/RequireSuperadmin'
+import { MediaMentionsListPage } from '@admin/pages/media-mentions/MediaMentionsListPage'
+import { MediaMentionCreatePage } from '@admin/pages/media-mentions/MediaMentionCreatePage'
+import { MediaMentionEditPage } from '@admin/pages/media-mentions/MediaMentionEditPage'
 
 function App() {
   return (
@@ -91,6 +94,9 @@ function App() {
         <Route path="news" element={<NewsListPage />} />
         <Route path="news/new" element={<NewsCreatePage />} />
         <Route path="news/:id" element={<NewsEditPage />} />
+        <Route path="media-mentions" element={<MediaMentionsListPage />} />
+        <Route path="media-mentions/new" element={<MediaMentionCreatePage />} />
+        <Route path="media-mentions/:id" element={<MediaMentionEditPage />} />
         <Route path="projects" element={<ProjectsListPage />} />
         <Route path="projects/new" element={<ProjectsCreatePage />} />
         <Route path="projects/:id" element={<ProjectsEditPage />} />
