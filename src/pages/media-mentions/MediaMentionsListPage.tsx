@@ -7,11 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@admi
 import { API_BASE_URL } from '@admin/api/config'
 import { toastError } from '@admin/lib/toast'
 
-function formatBadgeDate(iso: string | undefined): string {
+function formatBadgeYear(iso: string | undefined): string {
   if (!iso) return '—'
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleDateString('uk-UA')
+  return String(d.getFullYear())
 }
 
 export function MediaMentionsListPage() {
@@ -46,7 +46,7 @@ export function MediaMentionsListPage() {
             Про нас у ЗМІ
           </h1>
           <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
-            Картки з фото, заголовком, коротким описом, датою та посиланням на матеріал.
+            Картки з фото, заголовком, коротким описом, роком у бейджі та посиланням на матеріал.
           </p>
         </div>
         <Button asChild size="sm">
@@ -76,7 +76,7 @@ export function MediaMentionsListPage() {
                   <div className="min-w-0">
                     <CardTitle className="truncate text-base">{m.titleUk || '—'}</CardTitle>
                     <CardDescription className="text-xs">
-                      Дата: {formatBadgeDate(m.publishedAt)}
+                      Рік: {formatBadgeYear(m.publishedAt)}
                     </CardDescription>
                   </div>
                   <Button asChild variant="secondary" size="sm">

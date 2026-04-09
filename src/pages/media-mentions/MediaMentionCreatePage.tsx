@@ -8,15 +8,9 @@ import { Input } from '@admin/components/ui/input'
 import { Label } from '@admin/components/ui/label'
 import { Textarea } from '@admin/components/ui/textarea'
 import { toastError, toastSuccess } from '@admin/lib/toast'
+import { yearToPublishedIsoUtc } from '@admin/lib/media-mention-year'
+import { MediaYearPicker } from '@admin/components/media-year-picker'
 import { ImagePlus } from 'lucide-react'
-
-function todayYmd(): string {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
 
 export function MediaMentionCreatePage() {
   const navigate = useNavigate()
@@ -25,7 +19,7 @@ export function MediaMentionCreatePage() {
   const [titleEn, setTitleEn] = useState('')
   const [excerptUk, setExcerptUk] = useState('')
   const [excerptEn, setExcerptEn] = useState('')
-  const [publishedAtYmd, setPublishedAtYmd] = useState(todayYmd)
+  const [publishedYear, setPublishedYear] = useState(() => new Date().getFullYear())
   const [href, setHref] = useState('')
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
@@ -64,7 +58,7 @@ export function MediaMentionCreatePage() {
           titleEn: titleEn.trim(),
           excerptUk: excerptUk.trim(),
           excerptEn: excerptEn.trim(),
-          publishedAt: publishedAtYmd ? `${publishedAtYmd}T12:00:00.000Z` : undefined,
+          publishedAt: yearToPublishedIsoUtc(publishedYear),
           href: hrefTrim,
         },
       })
@@ -96,7 +90,7 @@ export function MediaMentionCreatePage() {
           Додати згадку у ЗМІ
         </h1>
         <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
-          Заголовок, опис, дата публікації та посилання на зовнішній матеріал.
+          Заголовок, опис, рік для бейджа та посилання на зовнішній матеріал.
         </p>
       </div>
 
@@ -134,12 +128,11 @@ export function MediaMentionCreatePage() {
             </div>
             <div className="grid gap-2 sm:grid-cols-2 sm:gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="media-mention-date">Дата (для бейджа)</Label>
-                <Input
-                  id="media-mention-date"
-                  type="date"
-                  value={publishedAtYmd}
-                  onChange={(e) => setPublishedAtYmd(e.target.value)}
+                <Label htmlFor="media-mention-year">Рік (для бейджа)</Label>
+                <MediaYearPicker
+                  id="media-mention-year"
+                  value={publishedYear}
+                  onChange={setPublishedYear}
                 />
               </div>
               <div className="grid gap-2 sm:col-span-1">

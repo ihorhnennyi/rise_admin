@@ -11,16 +11,8 @@ import { API_BASE_URL } from '@admin/api/config'
 import { AlertDialog } from '@admin/components/ui/alert-dialog'
 import { toastError, toastInfo, toastSuccess } from '@admin/lib/toast'
 import { ImagePlus, List, Loader2, Save, Trash2 } from 'lucide-react'
-
-function isoToYmd(iso: string | undefined): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
+import { isoToYear, yearToPublishedIsoUtc } from '@admin/lib/media-mention-year'
+import { MediaYearPicker } from '@admin/components/media-year-picker'
 
 export function MediaMentionEditPage() {
   const { id } = useParams<{ id: string }>()
@@ -33,7 +25,7 @@ export function MediaMentionEditPage() {
   const [titleEn, setTitleEn] = useState('')
   const [excerptUk, setExcerptUk] = useState('')
   const [excerptEn, setExcerptEn] = useState('')
-  const [publishedAtYmd, setPublishedAtYmd] = useState('')
+  const [publishedYear, setPublishedYear] = useState(() => new Date().getFullYear())
   const [href, setHref] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -53,7 +45,7 @@ export function MediaMentionEditPage() {
         setTitleEn((d.titleEn ?? '').toString())
         setExcerptUk((d.excerptUk ?? '').toString())
         setExcerptEn((d.excerptEn ?? '').toString())
-        setPublishedAtYmd(isoToYmd(d.publishedAt) || '')
+        setPublishedYear(isoToYear(d.publishedAt))
         setHref((d.href ?? '').toString())
       } catch (e) {
         if (cancelled) return
@@ -89,7 +81,7 @@ export function MediaMentionEditPage() {
           titleEn: titleEn.trim(),
           excerptUk: excerptUk.trim(),
           excerptEn: excerptEn.trim(),
-          publishedAt: publishedAtYmd ? `${publishedAtYmd}T12:00:00.000Z` : undefined,
+          publishedAt: yearToPublishedIsoUtc(publishedYear),
           href: hrefTrim,
         },
       })
@@ -254,12 +246,11 @@ export function MediaMentionEditPage() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor="media-edit-date">Дата (для бейджа)</Label>
-              <Input
-                id="media-edit-date"
-                type="date"
-                value={publishedAtYmd}
-                onChange={(e) => setPublishedAtYmd(e.target.value)}
+              <Label htmlFor="media-edit-year">Рік (для бейджа)</Label>
+              <MediaYearPicker
+                id="media-edit-year"
+                value={publishedYear}
+                onChange={setPublishedYear}
               />
             </div>
             <div className="grid gap-2">
