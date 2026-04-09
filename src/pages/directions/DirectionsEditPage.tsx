@@ -46,12 +46,16 @@ export function DirectionsEditPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
+  const [uploadingSliderSlot, setUploadingSliderSlot] = useState<number | null>(null)
+  const [pendingSliderSlot, setPendingSliderSlot] = useState<number | null>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [impactCircles, setImpactCircles] = useState<DirectionImpactCircle[]>([])
   const coverInputRef = useRef<HTMLInputElement | null>(null)
+  const sliderInputRef = useRef<HTMLInputElement | null>(null)
 
   const coverUrl = useMemo(() => direction?.coverImageUrl ?? null, [direction?.coverImageUrl])
+  const sliderUrls = useMemo(() => direction?.sliderImageUrls ?? [], [direction?.sliderImageUrls])
 
   useEffect(() => {
     let cancelled = false
@@ -121,6 +125,43 @@ export function DirectionsEditPage() {
     } finally {
       setUploadingCover(false)
       if (coverInputRef.current) coverInputRef.current.value = ''
+    }
+  }
+
+  async function onUploadSlider(file: File | null) {
+    if (!file || pendingSliderSlot == null) return
+    const imageIndex = pendingSliderSlot
+    setUploadingSliderSlot(imageIndex)
+    try {
+      toastInfo('Завантаження…', 'Слайдер')
+      const form = new FormData()
+      form.append('image', file)
+      const q = new URLSearchParams({ imageIndex: String(imageIndex) })
+      const updated = await apiFetch<Direction>(`/directions/${directionId}/slider/image?${q}`, {
+        method: 'POST',
+        body: form,
+      })
+      setDirection(updated)
+      toastSuccess('Завантажено', 'Фото додано до слайдера.')
+    } catch {
+      toastError('Помилка', 'Не вдалося завантажити фото слайдера.')
+    } finally {
+      setUploadingSliderSlot(null)
+      setPendingSliderSlot(null)
+      if (sliderInputRef.current) sliderInputRef.current.value = ''
+    }
+  }
+
+  async function removeSliderAt(idx: number) {
+    try {
+      const q = new URLSearchParams({ imageIndex: String(idx) })
+      const updated = await apiFetch<Direction>(`/directions/${directionId}/slider/image?${q}`, {
+        method: 'DELETE',
+      })
+      setDirection(updated)
+      toastSuccess('Видалено', 'Фото прибрано зі слайдера.')
+    } catch {
+      toastError('Помилка', 'Не вдалося видалити фото.')
     }
   }
 
@@ -304,6 +345,94 @@ export function DirectionsEditPage() {
               </Button>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-[hsl(var(--card)/0.65)] backdrop-blur">
+        <CardHeader>
+          <CardTitle>Слайдер «Як це було»</CardTitle>
+          <CardDescription>
+            Фото для блоку під карткою напрямку на головній. До 20 зображень; на широкому екрані показуються три, далі —
+            стрілки.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <input
+            ref={sliderInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => void onUploadSlider(e.target.files?.[0] ?? null)}
+          />
+          {sliderUrls.length === 0 ? (
+            <p className="text-sm text-[hsl(var(--muted-foreground))]">Ще немає фото.</p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {sliderUrls.map((url, idx) => (
+                <div
+                  key={`${idx}-${url}`}
+                  className="relative overflow-hidden rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card)/0.4)]"
+                >
+                  <div className="aspect-[3/4] w-full overflow-hidden">
+                    <img
+                      src={`${API_BASE_URL.replace(/\/api$/, '')}${url}`}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2 border-t border-[hsl(var(--border))] p-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="size-8 shrink-0 px-0"
+                      disabled={uploadingSliderSlot !== null}
+                      onClick={() => {
+                        setPendingSliderSlot(idx)
+                        sliderInputRef.current?.click()
+                      }}
+                      aria-label="Замінити"
+                      title="Замінити"
+                    >
+                      {uploadingSliderSlot === idx ? (
+                        <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                      ) : (
+                        <ImagePlus className="size-3.5" aria-hidden />
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-400 hover:text-red-300"
+                      disabled={uploadingSliderSlot !== null}
+                      onClick={() => void removeSliderAt(idx)}
+                    >
+                      Видалити
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={uploadingSliderSlot !== null || sliderUrls.length >= 20}
+            onClick={() => {
+              setPendingSliderSlot(sliderUrls.length)
+              sliderInputRef.current?.click()
+            }}
+          >
+            {uploadingSliderSlot === sliderUrls.length ? (
+              <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+            ) : (
+              <ImagePlus className="mr-2 size-4" aria-hidden />
+            )}
+            Додати фото
+          </Button>
         </CardContent>
       </Card>
 

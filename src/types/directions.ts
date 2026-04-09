@@ -14,6 +14,8 @@ export type Direction = {
   excerptUk?: string
   excerptEn?: string
   coverImageUrl: string | null
+  /** Фото слайдера «Як це було» на головній */
+  sliderImageUrls?: string[]
   impactCircles?: DirectionImpactCircle[]
   createdAt?: string
   updatedAt?: string
