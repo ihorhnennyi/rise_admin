@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { apiFetch, ApiError } from '@admin/api/http'
 import type { MenuItem } from '@admin/types/menu'
 import { Button } from '@admin/components/ui/button'
@@ -19,12 +19,19 @@ export function MenuPage() {
 
   const [newUk, setNewUk] = useState('')
   const [newEn, setNewEn] = useState('')
+  const [newSlugInput, setNewSlugInput] = useState('')
+  const newSlugManualRef = useRef(false)
   const [adding, setAdding] = useState(false)
 
   const [ukDrafts, setUkDrafts] = useState<Record<string, string>>({})
   const [enDrafts, setEnDrafts] = useState<Record<string, string>>({})
+  const [slugDrafts, setSlugDrafts] = useState<Record<string, string>>({})
 
-  const newSlug = useMemo(() => slugifySegment(newEn.trim() ? newEn : newUk), [newUk, newEn])
+  const autoNewSlug = useMemo(() => slugifySegment(newEn.trim() ? newEn : newUk), [newUk, newEn])
+
+  useEffect(() => {
+    if (!newSlugManualRef.current) setNewSlugInput(autoNewSlug)
+  }, [autoNewSlug])
 
   const load = useCallback(async () => {
     try {
@@ -32,12 +39,15 @@ export function MenuPage() {
       setItems(data)
       const uk: Record<string, string> = {}
       const en: Record<string, string> = {}
+      const sl: Record<string, string> = {}
       for (const m of data) {
         uk[m._id] = m.titleUk ?? ''
         en[m._id] = m.titleEn ?? ''
+        sl[m._id] = m.slug ?? ''
       }
       setUkDrafts(uk)
       setEnDrafts(en)
+      setSlugDrafts(sl)
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) return
       toastError('Помилка', 'Не вдалося завантажити елементи меню.')
@@ -61,16 +71,29 @@ export function MenuPage() {
     }
     setAdding(true)
     try {
+      const slugRaw = newSlugInput.trim()
       await apiFetch<MenuItem>('/menu', {
         method: 'POST',
-        json: { titleUk, titleEn: titleEn || undefined },
+        json: {
+          titleUk,
+          titleEn: titleEn || undefined,
+          ...(slugRaw ? { slug: slugRaw } : {}),
+        },
       })
       setNewUk('')
       setNewEn('')
+      newSlugManualRef.current = false
+      setNewSlugInput('')
       toastSuccess('Створено', 'Елемент меню додано.')
       await load()
-    } catch {
-      toastError('Помилка', 'Не вдалося створити.')
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        toastError('Помилка', 'Такий slug уже зайнятий.')
+      } else if (e instanceof ApiError && e.status === 400) {
+        toastError('Помилка', 'Некоректний slug.')
+      } else {
+        toastError('Помилка', 'Не вдалося створити.')
+      }
     } finally {
       setAdding(false)
     }
@@ -79,17 +102,28 @@ export function MenuPage() {
   async function save(id: string) {
     const titleUk = (ukDrafts[id] ?? '').trim()
     const titleEn = (enDrafts[id] ?? '').trim()
+    const slug = (slugDrafts[id] ?? '').trim()
     if (!titleUk) {
       toastError('Помилка', 'Назва (UA) обовʼязкова.')
       return
     }
+    if (!slug) {
+      toastError('Помилка', 'Slug не може бути порожнім.')
+      return
+    }
     setSavingId(id)
     try {
-      await apiFetch<MenuItem>(`/menu/${id}`, { method: 'PATCH', json: { titleUk, titleEn } })
+      await apiFetch<MenuItem>(`/menu/${id}`, { method: 'PATCH', json: { titleUk, titleEn, slug } })
       toastSuccess('Збережено', 'Оновлено.')
       await load()
-    } catch {
-      toastError('Помилка', 'Не вдалося зберегти.')
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        toastError('Помилка', 'Такий slug уже зайнятий або некоректний.')
+      } else if (e instanceof ApiError && e.status === 400) {
+        toastError('Помилка', 'Некоректний slug.')
+      } else {
+        toastError('Помилка', 'Не вдалося зберегти.')
+      }
     } finally {
       setSavingId(null)
     }
@@ -113,7 +147,7 @@ export function MenuPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-[hsl(var(--foreground))]">Елементи меню</h1>
         <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
-          Назви (UA/EN). <b>Slug</b> генерується автоматично при створенні.
+          Назви (UA/EN) та <b>slug</b> URL (латиниця, дефіси). Якщо slug не вказати при додаванні — згенерується з назви.
         </p>
       </div>
 
@@ -121,7 +155,7 @@ export function MenuPage() {
         <CardHeader>
           <CardTitle>Додати елемент</CardTitle>
           <CardDescription>
-            UA обовʼязково. Slug генерується з <b>англійської назви</b>, якщо вона заповнена — інакше з UA.
+            UA обовʼязково. Slug за замовчуванням з <b>англійської назви</b>, якщо вона заповнена — інакше з UA; можна змінити вручну.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -135,8 +169,16 @@ export function MenuPage() {
               <Input id="new-en" value={newEn} onChange={(e) => setNewEn(e.target.value)} />
             </div>
             <div className="grid min-w-[220px] flex-1 gap-2">
-              <Label>Slug (preview)</Label>
-              <Input value={newSlug} readOnly />
+              <Label htmlFor="new-slug">Slug</Label>
+              <Input
+                id="new-slug"
+                value={newSlugInput}
+                onChange={(e) => {
+                  newSlugManualRef.current = true
+                  setNewSlugInput(e.target.value)
+                }}
+                placeholder={autoNewSlug || 'about-fund'}
+              />
             </div>
             <Button type="submit" disabled={adding}>
               {adding ? 'Додавання…' : 'Додати'}
@@ -160,11 +202,17 @@ export function MenuPage() {
             <Card key={m._id} className="bg-[hsl(var(--card)/0.65)] backdrop-blur">
               <CardHeader className="space-y-1 pb-2">
                 <CardTitle className="text-base">Menu item</CardTitle>
-                <CardDescription className="text-xs">
-                  Slug: <code className="text-xs">{m.slug}</code>
-                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
+                <div className="grid gap-2">
+                  <Label htmlFor={`slug-${m._id}`}>Slug</Label>
+                  <Input
+                    id={`slug-${m._id}`}
+                    value={slugDrafts[m._id] ?? ''}
+                    onChange={(e) => setSlugDrafts((p) => ({ ...p, [m._id]: e.target.value }))}
+                    spellCheck={false}
+                  />
+                </div>
                 <div className="grid gap-2">
                   <Label htmlFor={`uk-${m._id}`}>Назва (UA)</Label>
                   <Input
